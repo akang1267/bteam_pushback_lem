@@ -1,13 +1,13 @@
 #include "main.h"
 #include "lemlib/api.hpp" // IWYU pragma: keep
 
-constexpr int8_t leftF = 1;
-constexpr int8_t leftM = 2;
-constexpr int8_t leftB = 3;
+constexpr int8_t leftF = -17; 
+constexpr int8_t leftM = -15;
+constexpr int8_t leftB = 16;
 
-constexpr int8_t rightF = 4;
-constexpr int8_t rightM = 5;
-constexpr int8_t rightB = 6;
+constexpr int8_t rightF = 18;
+constexpr int8_t rightM = 20;
+constexpr int8_t rightB = -19;
 
 constexpr int8_t intakefP = 7;
 constexpr int8_t intakebP = 8;
