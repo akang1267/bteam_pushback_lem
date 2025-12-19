@@ -9,8 +9,8 @@ constexpr int8_t rightF = 18;
 constexpr int8_t rightM = 20;
 constexpr int8_t rightB = -19;
 
-constexpr int8_t intakefP = 7;
-constexpr int8_t intakebP = 8;
+constexpr int8_t intakefP = 14;
+constexpr int8_t intakebP = -12;
 
 constexpr char descoreP = 'A';
 constexpr char matchloadP = 'C';
