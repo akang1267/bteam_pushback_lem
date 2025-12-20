@@ -12,8 +12,8 @@ constexpr int8_t rightB = -19;
 constexpr int8_t intakefP = 14;
 constexpr int8_t intakebP = -12;
 
-constexpr char descoreP = 'A';
-constexpr char matchloadP = 'C';
+constexpr char descoreP = 'B';
+constexpr char matchloadP = 'A';
 
 bool descore_state = false;
 bool middle_state = false;
@@ -22,9 +22,12 @@ bool matchload_state = false;
 pros::Motor intakef (intakefP);
 pros::Motor intakeb (intakebP);
 
+pros::Distance distancer (0);
+pros::Distance distancel (0);
+pros::Distance distancef (0);
+
 pros::ADIDigitalOut descore (descoreP);
 pros::ADIDigitalOut matchload (matchloadP);
-
 
 
 // controller
@@ -36,7 +39,7 @@ pros::MotorGroup leftMotors({leftF, leftM, leftB},
 pros::MotorGroup rightMotors({rightF, rightM, rightB}, pros::MotorGearset::blue); // right motor group - ports 6, 7, 9 (reversed)
 
 // Inertial Sensor on port 10
-pros::Imu imu(10);
+pros::Imu imu(11);
 
 // tracking wheels
 // horizontal tracking wheel encoder. Rotation sensor, port 20, not reversed
@@ -58,33 +61,33 @@ lemlib::Drivetrain drivetrain(&leftMotors, // left motor group
 );
 
 // lateral motion controller
-lemlib::ControllerSettings linearController(10, // proportional gain (kP)
+lemlib::ControllerSettings linearController(5, // proportional gain (kP)
                                             0, // integral gain (kI)
-                                            3, // derivative gain (kD)
-                                            3, // anti windup
+                                            6, // derivative gain (kD)
+                                            0, // anti windup
                                             1, // small error range, in inches
-                                            100, // small error range timeout, in milliseconds
-                                            3, // large error range, in inches
-                                            500, // large error range timeout, in milliseconds
-                                            20 // maximum acceleration (slew)
+                                            75, // small error range timeout, in milliseconds
+                                            2, // large error range, in inches
+                                            150, // large error range timeout, in milliseconds
+                                            0 // maximum acceleration (slew)
 );
 
 // angular motion controller
-lemlib::ControllerSettings angularController(2, // proportional gain (kP)
+lemlib::ControllerSettings angularController(3, // proportional gain (kP)
                                              0, // integral gain (kI)
-                                             10, // derivative gain (kD)
-                                             3, // anti windup
+                                             23, // derivative gain (kD)
+                                             0, // anti windup
                                              1, // small error range, in degrees
-                                             100, // small error range timeout, in milliseconds
-                                             3, // large error range, in degrees
-                                             500, // large error range timeout, in milliseconds
+                                             50, // small error range timeout, in milliseconds
+                                             2, // large error range, in degrees
+                                             100, // large error range timeout, in milliseconds
                                              0 // maximum acceleration (slew)
 );
 
 // sensors for odometry
-lemlib::OdomSensors sensors(&vertical, // vertical tracking wheel
+lemlib::OdomSensors sensors(nullptr, // vertical tracking wheel
                             nullptr, // vertical tracking wheel 2, set to nullptr as we don't have a second one
-                            &horizontal, // horizontal tracking wheel
+                            nullptr, // horizontal tracking wheel
                             nullptr, // horizontal tracking wheel 2, set to nullptr as we don't have a second one
                             &imu // inertial sensor
 );
@@ -153,6 +156,7 @@ ASSET(example_txt); // '.' replaced with "_" to make c++ happy
 
 //MADE-FUNCTIONS****
 
+
 void set_both(int32_t voltage){
     intakef.move_voltage(voltage);
     intakeb.move_voltage(voltage);
@@ -176,8 +180,75 @@ void toggle_descore(){
     descore.set_value(descore_state);
 }
 
-void example_auton(){
-    chassis.moveToPoint(0, 24, 1000);
+void solo_awp_right(){
+    chassis.moveToPoint(0, 24, 1000, {.minSpeed = 10, .earlyExitRange = 1});
+
+    chassis.turnToHeading(90, 1000, {.minSpeed = 10, .earlyExitRange = 2});
+    toggle_matchload();
+    //toggle amtchlod
+
+    chassis.moveToPoint(8, 24, 1000);
+    set_intakef(12000);
+    chassis.waitUntilDone();
+    pros::delay(200);
+    chassis.moveToPoint(-21, 24, 1500, {.forwards = false}); //backwards
+    chassis.waitUntil(22);
+    set_intakeb(12000);
+    //score
+    pros::delay(500);
+    chassis.moveToPoint(-13, 23, 1000);
+
+    toggle_matchload();
+
+    chassis.turnToHeading(208, 1000, {.minSpeed = 1, .earlyExitRange = 5});
+    set_both(0);
+    chassis.moveToPoint(-22, 10, 1500);
+    set_intakef(12000);
+    chassis.waitUntil(14);
+    toggle_matchload();
+    chassis.turnToHeading(185, 1000, {.minSpeed = 1, .earlyExitRange = 5});
+
+    chassis.moveToPoint(-23, -32, 1500);
+    chassis.waitUntil(1);
+    toggle_matchload();
+    chassis.waitUntil(29);
+    toggle_matchload();
+
+    chassis.turnToHeading(125, 1000);
+    chassis.waitUntil(10);
+    set_intakef(0);
+
+    chassis.moveToPoint(-36, -19.5, 2500, {.forwards = false, .minSpeed = 70});
+    chassis.waitUntil(5);
+    set_intakef(-12000);
+    pros::delay(200);
+    set_intakef(12000);
+    chassis.waitUntilDone();
+    pros::delay(500);
+
+    
+
+    chassis.moveToPoint(1, -52.5, 2000, {.minSpeed = 10 , .earlyExitRange = 2});
+    chassis.turnToHeading(90, 1000, {.minSpeed = 10, .earlyExitRange = 5});
+    chassis.moveToPoint(12, -52.5, 1000);
+    pros::delay(500);
+    chassis.moveToPoint(-19, -52.5, 1000, {.forwards = false});
+    chassis.waitUntilDone();
+    set_both(12000);
+
+
+
+}
+
+void pid_tune(){
+    chassis.moveToPoint(0, 24, 3000);
+    pros::delay (300);
+
+    chassis.turnToHeading(90, 2000);
+    pros::delay (300);
+    chassis.turnToHeading(270, 2000);
+    pros::delay (300);
+    chassis.turnToHeading(180, 2000);
 }
 
 /**
@@ -186,44 +257,47 @@ void example_auton(){
  * This is an example autonomous routine which demonstrates a lot of the features LemLib has to offer
  */
 void autonomous() {
-    example_auton();
+    solo_awp_right();
 }
 
 /**
  * Runs in driver control
  */
 
-int8_t L1_pressed = controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L1); 
-int8_t L2_pressing = controller.get_digital(pros::E_CONTROLLER_DIGITAL_L2);
-
-int8_t R1_pressing = controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1);  
-int8_t R2_pressing = controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2);
-
-int8_t X_pressed = controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_X);  
-
 void update_robot(){
 
-    if(L1_pressed){
+    int8_t L1_pressing = controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1); 
+    int8_t L2_pressed = controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L2);
+
+    int8_t R1_pressing = controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1);  
+    int8_t R2_pressing = controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2);
+
+    int8_t A_pressed = controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A);  
+
+    if(L2_pressed){
         toggle_descore();
     }
-
-    if(L2_pressing){
-        set_both(-1200);
-    }
-
-    if(R1_pressing){
-        set_intakef(1200);
-    }
-
-    if(R2_pressing){
-        set_both(1200);
-    }
-
-    if(X_pressed){
+    
+    else if(A_pressed){
         toggle_matchload();
     }
 
-    set_both(0);
+    else if(R2_pressing){
+        set_both(-12000);
+    }
+
+    else if (R1_pressing){ 
+        set_intakef(12000);
+    }
+
+    else if(L1_pressing){
+        set_both(12000);
+    }
+
+    else{
+        set_both(0);
+    }
+
 
 }
 
@@ -236,8 +310,10 @@ void opcontrol() {
         int rightX = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
         // move the chassis with curvature drive
         chassis.arcade(leftY, rightX);
+
         update_robot();
         // delay to save resources
         pros::delay(10);
     }
+
 }
