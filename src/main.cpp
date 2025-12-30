@@ -1,45 +1,17 @@
 #include "main.h"
 #include "lemlib/api.hpp" // IWYU pragma: keep
-
-constexpr int8_t leftF = -17; 
-constexpr int8_t leftM = -15;
-constexpr int8_t leftB = 16;
-
-constexpr int8_t rightF = 18;
-constexpr int8_t rightM = 20;
-constexpr int8_t rightB = -19;
-
-constexpr int8_t intakefP = 14;
-constexpr int8_t intakebP = -12;
-
-constexpr char descoreP = 'B';
-constexpr char matchloadP = 'A';
-
-bool descore_state = false;
-bool middle_state = false;
-bool matchload_state = false;
-
-pros::Motor intakef (intakefP);
-pros::Motor intakeb (intakebP);
-
-pros::Distance distancer (0);
-pros::Distance distancel (0);
-pros::Distance distancef (0);
-
-pros::ADIDigitalOut descore (descoreP);
-pros::ADIDigitalOut matchload (matchloadP);
-
-
-// controller
-pros::Controller controller(pros::E_CONTROLLER_MASTER);
+#include "ports.hpp"
+#include "robot.hpp"
+#include "auton.hpp"
+#include "distance.hpp"
 
 // motor groups
-pros::MotorGroup leftMotors({leftF, leftM, leftB},
-                            pros::MotorGearset::blue); // left motor group - ports 3 (reversed), 4, 5 (reversed)
-pros::MotorGroup rightMotors({rightF, rightM, rightB}, pros::MotorGearset::blue); // right motor group - ports 6, 7, 9 (reversed)
+pros::MotorGroup leftMotors({ports::leftF, ports::leftM, ports::leftB},
+                            pros::MotorGearset::blue); // left motor group 
+pros::MotorGroup rightMotors({ports::rightF, ports::rightM, ports::rightB}, pros::MotorGearset::blue); // right motor group
 
-// Inertial Sensor on port 10
-pros::Imu imu(11);
+// Inertial Sensor on port 1
+pros::Imu imu(ports::inertialP);
 
 // tracking wheels
 // horizontal tracking wheel encoder. Rotation sensor, port 20, not reversed
@@ -157,99 +129,12 @@ ASSET(example_txt); // '.' replaced with "_" to make c++ happy
 //MADE-FUNCTIONS****
 
 
-void set_both(int32_t voltage){
-    intakef.move_voltage(voltage);
-    intakeb.move_voltage(voltage);
-}
 
-void set_intakeb(int32_t voltage){
-    intakeb.move_voltage(voltage);
-}
+//robot functions
+pros::Controller controller(pros::E_CONTROLLER_MASTER);
+Robot robot;
+Distance distance;
 
-void set_intakef(int32_t voltage){
-    intakef.move_voltage(voltage);
-}
-
-void toggle_matchload(){
-    matchload_state = !matchload_state;
-    matchload.set_value(matchload_state);
-}
-
-void toggle_descore(){
-    descore_state = !descore_state;
-    descore.set_value(descore_state);
-}
-
-void solo_awp_right(){
-    chassis.moveToPoint(0, 24, 1000, {.minSpeed = 10, .earlyExitRange = 1});
-
-    chassis.turnToHeading(90, 1000, {.minSpeed = 10, .earlyExitRange = 2});
-    toggle_matchload();
-    //toggle amtchlod
-
-    chassis.moveToPoint(8, 24, 1000);
-    set_intakef(12000);
-    chassis.waitUntilDone();
-    pros::delay(200);
-    chassis.moveToPoint(-21, 24, 1500, {.forwards = false}); //backwards
-    chassis.waitUntil(22);
-    set_intakeb(12000);
-    //score
-    pros::delay(500);
-    chassis.moveToPoint(-13, 23, 1000);
-
-    toggle_matchload();
-
-    chassis.turnToHeading(208, 1000, {.minSpeed = 1, .earlyExitRange = 5});
-    set_both(0);
-    chassis.moveToPoint(-22, 10, 1500);
-    set_intakef(12000);
-    chassis.waitUntil(14);
-    toggle_matchload();
-    chassis.turnToHeading(185, 1000, {.minSpeed = 1, .earlyExitRange = 5});
-
-    chassis.moveToPoint(-23, -32, 1500);
-    chassis.waitUntil(1);
-    toggle_matchload();
-    chassis.waitUntil(29);
-    toggle_matchload();
-
-    chassis.turnToHeading(125, 1000);
-    chassis.waitUntil(10);
-    set_intakef(0);
-
-    chassis.moveToPoint(-36, -19.5, 2500, {.forwards = false, .minSpeed = 70});
-    chassis.waitUntil(5);
-    set_intakef(-12000);
-    pros::delay(200);
-    set_intakef(12000);
-    chassis.waitUntilDone();
-    pros::delay(500);
-
-    
-
-    chassis.moveToPoint(1, -52.5, 2000, {.minSpeed = 10 , .earlyExitRange = 2});
-    chassis.turnToHeading(90, 1000, {.minSpeed = 10, .earlyExitRange = 5});
-    chassis.moveToPoint(12, -52.5, 1000);
-    pros::delay(500);
-    chassis.moveToPoint(-19, -52.5, 1000, {.forwards = false});
-    chassis.waitUntilDone();
-    set_both(12000);
-
-
-
-}
-
-void pid_tune(){
-    chassis.moveToPoint(0, 24, 3000);
-    pros::delay (300);
-
-    chassis.turnToHeading(90, 2000);
-    pros::delay (300);
-    chassis.turnToHeading(270, 2000);
-    pros::delay (300);
-    chassis.turnToHeading(180, 2000);
-}
 
 /**
  * Runs during auto
@@ -257,49 +142,14 @@ void pid_tune(){
  * This is an example autonomous routine which demonstrates a lot of the features LemLib has to offer
  */
 void autonomous() {
-    solo_awp_right();
+    elims_left(chassis, robot, distance);
+    //solo_awp_right();
 }
 
 /**
  * Runs in driver control
  */
 
-void update_robot(){
-
-    int8_t L1_pressing = controller.get_digital(pros::E_CONTROLLER_DIGITAL_L1); 
-    int8_t L2_pressed = controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_L2);
-
-    int8_t R1_pressing = controller.get_digital(pros::E_CONTROLLER_DIGITAL_R1);  
-    int8_t R2_pressing = controller.get_digital(pros::E_CONTROLLER_DIGITAL_R2);
-
-    int8_t A_pressed = controller.get_digital_new_press(pros::E_CONTROLLER_DIGITAL_A);  
-
-    if(L2_pressed){
-        toggle_descore();
-    }
-    
-    else if(A_pressed){
-        toggle_matchload();
-    }
-
-    else if(R2_pressing){
-        set_both(-12000);
-    }
-
-    else if (R1_pressing){ 
-        set_intakef(12000);
-    }
-
-    else if(L1_pressing){
-        set_both(12000);
-    }
-
-    else{
-        set_both(0);
-    }
-
-
-}
 
 void opcontrol() {
     // controller
@@ -309,9 +159,9 @@ void opcontrol() {
         int leftY = controller.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);
         int rightX = controller.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_X);
         // move the chassis with curvature drive
-        chassis.arcade(leftY, rightX);
+        chassis.arcade(leftY, 0.9*rightX);
 
-        update_robot();
+        robot.update_robot();
         // delay to save resources
         pros::delay(10);
     }
