@@ -86,7 +86,6 @@ void elims_left(lemlib::Chassis& chassis, Robot robot, Distance distance){
     robot.set_both(12000);
 
     //placeholder for test
-    distance.resetcoord(1, chassis);
 }
 
 void pid_tune(lemlib::Chassis& chassis){

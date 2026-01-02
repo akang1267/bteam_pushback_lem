@@ -17,7 +17,7 @@ public:
     Distance();
 
     // Functions
-    void resetcoord(int quadrant, lemlib::Chassis& chassis);
+    void resetcoord(int quadrant, int angle, lemlib::Chassis& chassis);
     double mmToIn(double mm);
     double safeRead(pros::Distance& sensor);
 

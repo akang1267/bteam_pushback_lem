@@ -43,67 +43,136 @@ double Distance::safeRead(pros::Distance& sensor) {
     return inches;
 }
 
-void Distance::resetcoord(int quadrant, lemlib::Chassis& chassis) {
-    double front = safeRead(distancef);
-    double back  = safeRead(distanceb);
-    double left  = safeRead(distancel);
-    double right = safeRead(distancer);
+void Distance::resetcoord(int quadrant, int angle, lemlib::Chassis& chassis) {
+    double front = safeRead(distancef) + FRONT_OFFSET;
+    double back  = safeRead(distanceb) + BACK_OFFSET;
+    double left  = safeRead(distancel) + LEFT_OFFSET;
+    double right = safeRead(distancer) + RIGHT_OFFSET;
 
     // Default to current pose if a reading is invalid
     lemlib::Pose current = chassis.getPose();
     double xPos = current.x;
     double yPos = current.y;
 
-    // ---------------- FIELD-CENTERED X POSITION ----------------
-    // Walls:
-    // Bottom wall = y = -72
-    // Top wall    = y = +72
-    if (front > 0 && back > 0) {
-        double x_from_back  = -72 + (back  + BACK_OFFSET);
-        double x_from_front =  72 - (front + FRONT_OFFSET);
-        xPos = (x_from_back + x_from_front) / 2.0;
-    } else if (back > 0) {
-        xPos = -72 + (back + BACK_OFFSET);
-    } else if (front > 0) {
-        xPos =  72 - (front + FRONT_OFFSET);
+    double HALF_FIELD = 72;
+
+    bool red = false;
+    bool blue = false;
+    bool leftd = false;
+    bool rightd = false;
+
+    switch (angle)
+    {
+    case 0:
+        blue = true;
+        break;
+    
+    case 90:
+        right = true;
+        break;
+    case 180:
+        red = true;
+        break;
+    case 270:
+        left = true;
+        break;
+    default:
+        break;
     }
 
-    // ---------------- FIELD-CENTERED Y POSITION ----------------
-    // Walls:
-    // Left wall  = x = -72
-    // Right wall = x = +72
-    if (left > 0 && right > 0) {
-        double y_from_left  = -72 + (left  + LEFT_OFFSET);
-        double y_from_right =  72 - (right + RIGHT_OFFSET);
-        yPos = (y_from_left + y_from_right) / 2.0;
-    } else if (left > 0) {
-        yPos = -72 + (left + LEFT_OFFSET);
-    } else if (right > 0) {
-        yPos =  72 - (right + RIGHT_OFFSET);
+    // QUAD 1
+
+    if (quadrant == 1){
+        if(red){
+            xPos = (HALF_FIELD - left);
+            yPos = (HALF_FIELD - back);
+
+        }
+        else if (blue){
+            xPos = (HALF_FIELD - right);
+            yPos = (HALF_FIELD - front);
+        }
+        else if (rightd){
+            xPos = (HALF_FIELD - front);
+            yPos = (HALF_FIELD - left);
+        }
+
+        else if (leftd){
+            xPos = (HALF_FIELD - back);
+            yPos = (HALF_FIELD - right);
+        }
+    
     }
 
-    // Apply quadrant sign logic AFTER computing raw values
-    switch (quadrant) {
-        case 1:
-            xPos = fabs(xPos);
-            yPos = fabs(yPos);
-            break;
-        case 2:
-            xPos = -fabs(xPos);
-            yPos =  fabs(yPos);
-            break;
-        case 3:
-            xPos = -fabs(xPos);
-            yPos = -fabs(yPos);
-            break;
-        case 4:
-            xPos =  fabs(xPos);
-            yPos = -fabs(yPos);
-            break;
-        default:
-            break;
+    // QUAD 2
+
+    if (quadrant == 2){
+        if(red){
+            xPos = -(HALF_FIELD - right);
+            yPos = (HALF_FIELD - back);
+        }
+        else if (blue){
+            xPos = -(HALF_FIELD - left);
+            yPos = (HALF_FIELD - front);
+        }
+        else if (rightd){
+            xPos = -(HALF_FIELD - back);
+            yPos = (HALF_FIELD - left);
+        }
+
+        else if (leftd){
+            xPos = -(HALF_FIELD - front);
+            yPos = (HALF_FIELD - right);
+        }
+    
     }
 
+    // QUAD 3
+
+    if (quadrant == 3){
+        if(red){
+            xPos = -(HALF_FIELD - right);
+            yPos = -(HALF_FIELD - front);
+        }
+        else if (blue){
+            xPos = -(HALF_FIELD - left);
+            yPos = -(HALF_FIELD - back);
+        }
+        else if (rightd){
+            xPos = -(HALF_FIELD - back);
+            yPos = -(HALF_FIELD - right);
+        }
+
+        else if (leftd){
+            xPos = -(HALF_FIELD - front);
+            yPos = -(HALF_FIELD - left);
+        }
+    
+    }
+
+    // QUAD 4
+
+    if (quadrant == 4){
+        if(red){
+            xPos = (HALF_FIELD - left);
+            yPos = -(HALF_FIELD - front);
+
+        }
+        else if (blue){
+            xPos = (HALF_FIELD - right);
+            yPos = -(HALF_FIELD - back);
+        }
+        else if (rightd){
+            xPos = (HALF_FIELD - front);
+            yPos = -(HALF_FIELD - right);
+        }
+
+        else if (leftd){
+            xPos = (HALF_FIELD - back);
+            yPos = -(HALF_FIELD - left);
+        }
+    
+    }
 
 
     // printf("Sensors  F:%.2f  B:%.2f  L:%.2f  R:%.2f\n", front, back, left, right);
